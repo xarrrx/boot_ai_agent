@@ -2,6 +2,7 @@ import os
 import sys
 from dotenv import load_dotenv
 from google import genai 
+from google.genai import types
 
 #Load env variables from .env
 load_dotenv()
@@ -11,17 +12,32 @@ client = genai.Client(api_key=api_key)
 #input arguments
 args = sys.argv
 
+#to get the prompt after manual?
+user_prompt = args[1]
+messages = [
+    types.Content(role="user", parts=[types.Part(text=user_prompt)]),
+]
+
+
 def main():
     if len(args)==1:
         print("No prompt provided. Exiting now.")
         sys.exit(1)
 
+    verbose = len(args) == 3 and args[2] == "--verbose"
+
+    if verbose:
+        print(f"User prompt: {user_prompt}")
+
+
     response = client.models.generate_content(
-        model='gemini-2.0-flash-001', contents=args[1]
+        model='gemini-2.0-flash-001', contents=messages,
     )
     print(response.text)
-    print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-    print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+
+    if verbose:
+        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
+        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
 
 
     '''#test print
