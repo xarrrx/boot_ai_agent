@@ -1,5 +1,6 @@
 import os
 import subprocess
+from google.genai import types
 
 def run_python_file(working_directory, file_path, args=[]):
     #restrict to working space
@@ -36,3 +37,28 @@ def run_python_file(working_directory, file_path, args=[]):
 
     except Exception as e:
         return f'Error occured during execution of {file_path}:\n{e}'
+
+
+
+
+
+
+schema_run_python_file = types.FunctionDeclaration(
+    name="run_python_file",
+    description="Runs the specified python file, constrained to the working directory.",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="The the file path of the file that is run, relative to the working directory.",
+
+            ),
+             "args": types.Schema(
+                type=types.Type.STRING,
+                description="A enumeration of necessary arguments divided by 'space' for the file to run.",
+                
+            ),
+        },
+    ),
+)
