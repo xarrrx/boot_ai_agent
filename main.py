@@ -28,7 +28,8 @@ system_prompt = '''You are a helpful AI coding agent. When a user asks a questio
 - Read file contents
 - Execute Python files with optional arguments
 - Write or overwrite files
-All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.'''
+All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
+If need be, you can start checking the files in root as a start'''
 
 
 
@@ -42,6 +43,8 @@ available_functions = types.Tool(
     ]
 )
 
+MAX_ITERATIONS = 20
+
 
 def main():
     if len(args)==1:
@@ -53,30 +56,48 @@ def main():
     if verbose:
         print(f"User prompt: {user_prompt}")
 
+    iteration = 0
+    while iteration < MAX_ITERATIONS:
+        iteration +=1
+        try:
+            response = client.models.generate_content(
+                model='gemini-2.0-flash-001',
+                contents=messages, 
+                config=types.GenerateContentConfig(
+                    tools=[available_functions],
+                    system_instruction=system_prompt),
+            )
 
-    response = client.models.generate_content(
-        model='gemini-2.0-flash-001',
-        contents=messages, 
-        config=types.GenerateContentConfig(
-            tools=[available_functions],
-            system_instruction=system_prompt),
-    )
+            #adds the responses to the message log
+            for candidate in response.candidates:
+                messages.append(candidate.content)
 
-    if response.function_calls:
-        for item in response.function_calls:
-            #print(f"Calling funtion {item.name}({item.args})")
-            result = call_function(item, verbose)
-            if not result.parts[0].function_response.response:
-                raise Exception("Fatal exception: missing response.")
+            if response.function_calls:
+                for item in response.function_calls:
+                    #print(f"Calling function {item.name}({item.args})")
+                    result = call_function(item, verbose)
+                    if not result.parts[0].function_response.response:
+                        raise Exception("Fatal exception: missing response.")
+                    else:
+                        if verbose:
+                            print(f"-> {result.parts[0].function_response.response}")
+                    
+                    answer = types.Content(role="user", parts=[types.Part(text=result.parts[0].function_response.response.get("result", "No valid response"))])
+                    
+                    messages.append(answer)
             else:
-                if verbose:
-                    print(f"-> {result.parts[0].function_response.response}")
-    else:
-        print(response.text)
+                if response.text:
+                    print("Final response:")
+                    print(response.text)
+                    break
 
-    if verbose:
-        print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
-        print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+            if verbose:
+                print(f"Prompt tokens: {response.usage_metadata.prompt_token_count}")
+                print(f"Response tokens: {response.usage_metadata.candidates_token_count}")
+        except Exception as e:
+            print(f"Error during conversation loop: {e}")
+            return f"Error: {e}"
+            
 
 
     '''#test print
