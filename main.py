@@ -7,6 +7,7 @@ from functions.get_files_info import schema_get_files_info
 from functions.get_file_content import schema_get_file_content
 from functions.run_python_file import schema_run_python_file
 from functions.write_file import schema_write_file
+from functions.call_function import call_function
 
 #Load env variables from .env
 load_dotenv()
@@ -63,7 +64,13 @@ def main():
 
     if response.function_calls:
         for item in response.function_calls:
-            print(f"Calling funtion {item.name}({item.args})")
+            #print(f"Calling funtion {item.name}({item.args})")
+            result = call_function(item, verbose)
+            if not result.parts[0].function_response.response:
+                raise Exception("Fatal exception: missing response.")
+            else:
+                if verbose:
+                    print(f"-> {result.parts[0].function_response.response}")
     else:
         print(response.text)
 

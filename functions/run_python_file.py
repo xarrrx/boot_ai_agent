@@ -26,14 +26,25 @@ def run_python_file(working_directory, file_path, args=[]):
         command = ["python3", abs_path] + args
         run_object = subprocess.run(command, capture_output=True,text=True, timeout=30, env=restricted_env, cwd=abs_working_path)
 
+        '''#functional but baaaad
         if run_object.stdout == None and run_object.stderr == None:
             return_string = "No output produced."
         else:
             return_string = f'STDOUT: {run_object.stdout}\n STDERR: "{run_object.stderr}".'
         if not (run_object.returncode == 0):
             return_string += f'\n Process exited with code {run_object.returncode}.'
+        return return_string'''
+        #from solution:better!
+        return_string = []
+        if run_object.stdout:
+            return_string.append(f"STDOUT: \n{run_object.stdout}")
+        if run_object.stderr:
+            return_string.append(f"STDERR: \n{run_object.stderr}")
 
-        return return_string
+        if run_object.returncode != 0:
+            return_string.append(f"Process exited with code {run_object.returncode}")
+        return "\n".join(return_string) if return_string else "No output produced"
+        
 
     except Exception as e:
         return f'Error occured during execution of {file_path}:\n{e}'
